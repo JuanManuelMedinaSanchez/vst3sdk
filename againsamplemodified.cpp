@@ -29,9 +29,9 @@ namespace Vst {
 
 // AGain constructor
 AGain::AGain()
-    : fGain(1.f) // ->Initial value for the gain parameter (default gain = 1.0)
-    , fGainReduction(0.f) // ->Initial value for the gain reduction parameter (default gain reduction = 0.0)
-    , fVuPPMOld(0.f) // ->Initial value for the old VU meter value (default VU meter = 0.0)
+    : fGain(1.f) //->Initial value for the gain parameter (default gain = 1.0)
+    , fGainReduction(0.f) //->Initial value for the gain reduction parameter (default gain reduction = 0.0)
+    , fVuPPMOld(0.f) //->Initial value for the old VU meter value (default VU meter = 0.0)
     , currentProcessMode(-1) //-> -1 means not initialized
 {
     //-> Register the editor class for the plugin (the same as used in againentry.cpp)
@@ -47,7 +47,7 @@ AGain::~AGain()
 //-> AGain initialize function
 tresult PLUGIN_API AGain::initialize(FUnknown* context)
 {
-    //-> Always initialize the parent class (AudioEffect)
+    //->Always initialize the parent class (AudioEffect)
     tresult result = AudioEffect::initialize(context);
     //-> If everything is OK, continue
     if (result != kResultOk)
@@ -94,7 +94,8 @@ tresult PLUGIN_API AGain::setActive(TBool state)
     return AudioEffect::setActive(state);
 }
 
-// AGain process function
+//-------------->AGain process function
+
 tresult PLUGIN_API AGain::process(ProcessData& data)
 {
     //-> Finally, the process function
@@ -105,6 +106,7 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
     //-> 4) Write the new VU meter value to the output parameters queue
 
     //-> Step 1: Read input parameter changes
+
     if (IParameterChanges* paramChanges = data.inputParameterChanges)
     {
         int32 numParamsChanged = paramChanges->getParameterCount();
