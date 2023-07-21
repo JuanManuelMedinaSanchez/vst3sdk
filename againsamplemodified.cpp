@@ -380,55 +380,57 @@ tresult PLUGIN_API AGain::setupProcessing (ProcessSetup& newSetup)
 	return AudioEffect::setupProcessing (newSetup);
 }
 //------------------------------------------------------------------------
-tresult PLUGIN_API AGain::setBusArrangements (SpeakerArrangement* inputs, int32 numIns,
+
+tresult PLUGIN_API AGain::setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
                                               SpeakerArrangement* outputs, int32 numOuts)
 {
+	// This function is called to set the bus arrangements for the plugin.
+	// It is responsible for configuring the audio inputs and outputs based on the host's requirements.
+	
 	if (numIns == 1 && numOuts == 1)
 	{
-		// the host wants Mono => Mono (or 1 channel -> 1 channel)
-		if (SpeakerArr::getChannelCount (inputs[0]) == 1 &&
-		    SpeakerArr::getChannelCount (outputs[0]) == 1)
+		// The host wants Mono => Mono (1 channel -> 1 channel).
+		if (SpeakerArr::getChannelCount(inputs[0]) == 1 && SpeakerArr::getChannelCount(outputs[0]) == 1)
 		{
-			auto* bus = FCast<AudioBus> (audioInputs.at (0));
+			// Check if the bus arrangements are Mono => Mono; if not, recreate the busses with the new arrangements.
+			auto* bus = FCast<AudioBus>(audioInputs.at(0));
 			if (bus)
 			{
-				// check if we are Mono => Mono, if not we need to recreate the busses
-				if (bus->getArrangement () != inputs[0])
+				if (bus->getArrangement() != inputs[0])
 				{
-					getAudioInput (0)->setArrangement (inputs[0]);
-					getAudioInput (0)->setName (STR16 ("Mono In"));
-					getAudioOutput (0)->setArrangement (inputs[0]);
-					getAudioOutput (0)->setName (STR16 ("Mono Out"));
+					getAudioInput(0)->setArrangement(inputs[0]);
+					getAudioInput(0)->setName(STR16("Mono In"));
+					getAudioOutput(0)->setArrangement(inputs[0]);
+					getAudioOutput(0)->setName(STR16("Mono Out"));
 				}
 				return kResultOk;
 			}
 		}
-		// the host wants something else than Mono => Mono,
-		// in this case we are always Stereo => Stereo
+		// The host wants something else than Mono => Mono.
+		// In this case, we always configure the plugin as Stereo => Stereo.
 		else
 		{
-			auto* bus = FCast<AudioBus> (audioInputs.at (0));
+			auto* bus = FCast<AudioBus>(audioInputs.at(0));
 			if (bus)
 			{
 				tresult result = kResultFalse;
 
-				// the host wants 2->2 (could be LsRs -> LsRs)
-				if (SpeakerArr::getChannelCount (inputs[0]) == 2 &&
-				    SpeakerArr::getChannelCount (outputs[0]) == 2)
+				// The host wants 2->2 (could be LsRs -> LsRs).
+				if (SpeakerArr::getChannelCount(inputs[0]) == 2 && SpeakerArr::getChannelCount(outputs[0]) == 2)
 				{
-					getAudioInput (0)->setArrangement (inputs[0]);
-					getAudioInput (0)->setName (STR16 ("Stereo In"));
-					getAudioOutput (0)->setArrangement (outputs[0]);
-					getAudioOutput (0)->setName (STR16 ("Stereo Out"));
+					getAudioInput(0)->setArrangement(inputs[0]);
+					getAudioInput(0)->setName(STR16("Stereo In"));
+					getAudioOutput(0)->setArrangement(outputs[0]);
+					getAudioOutput(0)->setName(STR16("Stereo Out"));
 					result = kResultTrue;
 				}
-				// the host want something different than 1->1 or 2->2 : in this case we want stereo
-				else if (bus->getArrangement () != SpeakerArr::kStereo)
+				// The host wants something different than 1->1 or 2->2; in this case, we want stereo.
+				else if (bus->getArrangement() != SpeakerArr::kStereo)
 				{
-					getAudioInput (0)->setArrangement (SpeakerArr::kStereo);
-					getAudioInput (0)->setName (STR16 ("Stereo In"));
-					getAudioOutput (0)->setArrangement (SpeakerArr::kStereo);
-					getAudioOutput (0)->setName (STR16 ("Stereo Out"));
+					getAudioInput(0)->setArrangement(SpeakerArr::kStereo);
+					getAudioInput(0)->setName(STR16("Stereo In"));
+					getAudioOutput(0)->setArrangement(SpeakerArr::kStereo);
+					getAudioOutput(0)->setName(STR16("Stereo Out"));
 					result = kResultFalse;
 				}
 
@@ -440,43 +442,111 @@ tresult PLUGIN_API AGain::setBusArrangements (SpeakerArrangement* inputs, int32 
 }
 
 //------------------------------------------------------------------------
-tresult PLUGIN_API AGain::canProcessSampleSize (int32 symbolicSampleSize)
+tresult PLUGIN_API AGain::setBusArrangements(SpeakerArrangement* inputs, int32 numIns,
+                                              SpeakerArrangement* outputs, int32 numOuts)
 {
+	// This function is called to set the bus arrangements for the plugin.
+	// It is responsible for configuring the audio inputs and outputs based on the host's requirements.
+	
+	if (numIns == 1 && numOuts == 1)
+	{
+		// The host wants Mono => Mono (1 channel -> 1 channel).
+		if (SpeakerArr::getChannelCount(inputs[0]) == 1 && SpeakerArr::getChannelCount(outputs[0]) == 1)
+		{
+			// Check if the bus arrangements are Mono => Mono; if not, recreate the busses with the new arrangements.
+			auto* bus = FCast<AudioBus>(audioInputs.at(0));
+			if (bus)
+			{
+				if (bus->getArrangement() != inputs[0])
+				{
+					getAudioInput(0)->setArrangement(inputs[0]);
+					getAudioInput(0)->setName(STR16("Mono In"));
+					getAudioOutput(0)->setArrangement(inputs[0]);
+					getAudioOutput(0)->setName(STR16("Mono Out"));
+				}
+				return kResultOk;
+			}
+		}
+		// The host wants something else than Mono => Mono.
+		// In this case, we always configure the plugin as Stereo => Stereo.
+		else
+		{
+			auto* bus = FCast<AudioBus>(audioInputs.at(0));
+			if (bus)
+			{
+				tresult result = kResultFalse;
+
+				// The host wants 2->2 (could be LsRs -> LsRs).
+				if (SpeakerArr::getChannelCount(inputs[0]) == 2 && SpeakerArr::getChannelCount(outputs[0]) == 2)
+				{
+					getAudioInput(0)->setArrangement(inputs[0]);
+					getAudioInput(0)->setName(STR16("Stereo In"));
+					getAudioOutput(0)->setArrangement(outputs[0]);
+					getAudioOutput(0)->setName(STR16("Stereo Out"));
+					result = kResultTrue;
+				}
+				// The host wants something different than 1->1 or 2->2; in this case, we want stereo.
+				else if (bus->getArrangement() != SpeakerArr::kStereo)
+				{
+					getAudioInput(0)->setArrangement(SpeakerArr::kStereo);
+					getAudioInput(0)->setName(STR16("Stereo In"));
+					getAudioOutput(0)->setArrangement(SpeakerArr::kStereo);
+					getAudioOutput(0)->setName(STR16("Stereo Out"));
+					result = kResultFalse;
+				}
+
+				return result;
+			}
+		}
+	}
+	return kResultFalse;
+}
+//------------------------------------------------------------------------
+tresult PLUGIN_API AGain::canProcessSampleSize(int32 symbolicSampleSize)
+{
+	// This function checks if the plugin supports the given sample size.
+	// If the sample size is either 32-bit or 64-bit (kSample32 or kSample64),
+	// it returns kResultTrue, indicating that the plugin can process audio with that sample size.
+
 	if (symbolicSampleSize == kSample32)
 		return kResultTrue;
 
-	// we support double processing
+	// The plugin also supports double processing if the sample size is 64-bit.
 	if (symbolicSampleSize == kSample64)
 		return kResultTrue;
 
+	// For any other sample size, return kResultFalse, indicating that the plugin cannot process audio with that size.
 	return kResultFalse;
 }
-
 //------------------------------------------------------------------------
-tresult PLUGIN_API AGain::notify (IMessage* message)
+tresult PLUGIN_API AGain::notify(IMessage* message)
 {
+	// This function is called when the plugin receives a notification or message from the host application.
+	// It checks if the received message is of type "BinaryMessage" and extracts binary data from the message.
+	// If the message contains a binary data tag "MyData" with a size of 100 and the second byte is equal to 1,
+	// it prints a message to the standard error stream (stderr) indicating that it received the binary message.
+	// If the message is not of type "BinaryMessage" or does not meet the specified conditions, it calls the base class's notify function.
+
 	if (!message)
 		return kInvalidArgument;
 
-	if (strcmp (message->getMessageID (), "BinaryMessage") == 0)
+	if (strcmp(message->getMessageID(), "BinaryMessage") == 0)
 	{
 		const void* data;
 		uint32 size;
-		if (message->getAttributes ()->getBinary ("MyData", data, size) == kResultOk)
+		if (message->getAttributes()->getBinary("MyData", data, size) == kResultOk)
 		{
-			// we are in UI thread
-			// size should be 100
+			// We are in the UI thread
+			// Size should be 100
 			if (size == 100 && ((char*)data)[1] == 1) // yeah...
 			{
-				fprintf (stderr, "[AGain] received the binary message!\n");
+				fprintf(stderr, "[AGain] received the binary message!\n");
 			}
 			return kResultOk;
 		}
 	}
 
-	return AudioEffect::notify (message);
+	return AudioEffect::notify(message);
 }
 
-//------------------------------------------------------------------------
-} // namespace Vst
-} // namespace Steinberg
+
