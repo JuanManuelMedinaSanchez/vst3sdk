@@ -29,86 +29,86 @@ namespace Vst {
 
 // AGain constructor
 AGain::AGain()
-    : fGain(1.f) // Initial value for the gain parameter (default gain = 1.0)
-    , fGainReduction(0.f) // Initial value for the gain reduction parameter (default gain reduction = 0.0)
-    , fVuPPMOld(0.f) // Initial value for the old VU meter value (default VU meter = 0.0)
-    , currentProcessMode(-1) // -1 means not initialized
+    : fGain(1.f) // ->Initial value for the gain parameter (default gain = 1.0)
+    , fGainReduction(0.f) // ->Initial value for the gain reduction parameter (default gain reduction = 0.0)
+    , fVuPPMOld(0.f) // ->Initial value for the old VU meter value (default VU meter = 0.0)
+    , currentProcessMode(-1) //-> -1 means not initialized
 {
-    // Register the editor class for the plugin (the same as used in againentry.cpp)
+    //-> Register the editor class for the plugin (the same as used in againentry.cpp)
     setControllerClass(AGainControllerUID);
 }
 
-// AGain destructor
+//-> AGain destructor
 AGain::~AGain()
 {
-    // Nothing to do here yet..
+    //-> Nothing to do here yet..
 }
 
-// AGain initialize function
+//-> AGain initialize function
 tresult PLUGIN_API AGain::initialize(FUnknown* context)
 {
-    // Always initialize the parent class (AudioEffect)
+    //-> Always initialize the parent class (AudioEffect)
     tresult result = AudioEffect::initialize(context);
-    // If everything is OK, continue
+    //-> If everything is OK, continue
     if (result != kResultOk)
     {
         return result;
     }
 
-    // Create Audio In/Out busses
-    // We want a stereo Input and a Stereo Output
+    //-> Create Audio In/Out busses
+    //-> We want a stereo Input and a Stereo Output
     addAudioInput(STR16("Stereo In"), SpeakerArr::kStereo);
     addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
 
-    // Create Event In/Out busses (1 bus with only 1 channel)
+    //-> Create Event In/Out busses (1 bus with only 1 channel)
     addEventInput(STR16("Event In"), 1);
 
     return kResultOk;
 }
 
-// AGain terminate function
+//-> AGain terminate function
 tresult PLUGIN_API AGain::terminate()
 {
-    // Nothing to do here yet... except calling our parent terminate
+    //-> Nothing to do here yet... except calling our parent terminate
     return AudioEffect::terminate();
 }
 
-// AGain setActive function
+//-> AGain setActive function
 tresult PLUGIN_API AGain::setActive(TBool state)
 {
     if (state)
     {
-        // Send a text message to indicate that the plugin is set to active (true)
+        //-> Send a text message to indicate that the plugin is set to active (true)
         sendTextMessage("AGain::setActive (true)");
     }
     else
     {
-        // Send a text message to indicate that the plugin is set to inactive (false)
+        //-> Send a text message to indicate that the plugin is set to inactive (false)
         sendTextMessage("AGain::setActive (false)");
     }
 
-    // Reset the VU Meter value to 0
+    //-> Reset the VU Meter value to 0
     fVuPPMOld = 0.f;
 
-    // Call our parent setActive function
+    //-> Call our parent setActive function
     return AudioEffect::setActive(state);
 }
 
 // AGain process function
 tresult PLUGIN_API AGain::process(ProcessData& data)
 {
-    // Finally, the process function
-    // In this example, there are 4 steps:
-    // 1) Read input parameters coming from the host (to adapt model values)
-    // 2) Read input events coming from the host (apply gain reduction based on the velocity of pressed keys)
-    // 3) Process the gain of the input buffer to the output buffer
-    // 4) Write the new VU meter value to the output parameters queue
+    //-> Finally, the process function
+    //-> In this example, there are 4 steps:
+    //-> 1) Read input parameters coming from the host (to adapt model values)
+    //-> 2) Read input events coming from the host (apply gain reduction based on the velocity of pressed keys)
+    //-> 3) Process the gain of the input buffer to the output buffer
+    //-> 4) Write the new VU meter value to the output parameters queue
 
-    // Step 1: Read input parameter changes
+    //-> Step 1: Read input parameter changes
     if (IParameterChanges* paramChanges = data.inputParameterChanges)
     {
         int32 numParamsChanged = paramChanges->getParameterCount();
-        // For each parameter that has changes in this audio block:
+        //-> For each parameter that has changes in this audio block:
         for (int32 i = 0; i < numParamsChanged; i++)
         {
             if (IParamValueQueue* paramQueue = paramChanges->getParameterData(i))
@@ -116,18 +116,18 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
                 ParamValue value;
                 int32 sampleOffset;
                 int32 numPoints = paramQueue->getPointCount();
-                // Process the changes for different parameters (e.g., gain and bypass)
+                //-> Process the changes for different parameters (e.g., gain and bypass)
                 switch (paramQueue->getParameterId())
                 {
                     case kGainId:
-                        // Use the last point of the queue (in this example) to update the gain value
+                        //-> Use the last point of the queue (in this example) to update the gain value
                         if (paramQueue->getPoint(numPoints - 1, sampleOffset, value) == kResultTrue)
                         {
                             fGain = (float)value;
                         }
                         break;
                     case kBypassId:
-                        // Use the last point of the queue (in this example) to update the bypass value
+                        //-> Use the last point of the queue (in this example) to update the bypass value
                         if (paramQueue->getPoint(numPoints - 1, sampleOffset, value) == kResultTrue)
                         {
                             bBypass = (value > 0.5f);
@@ -138,7 +138,7 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
         }
     }
 
-    // Step 2: Read input events
+    //-> Step 2: Read input events
     if (IEventList* eventList = data.inputEvents)
     {
         int32 numEvent = eventList->getEventCount();
@@ -147,15 +147,15 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
             Event event;
             if (eventList->getEvent(i, event) == kResultOk)
             {
-                // Process different event types (e.g., Note On and Note Off events)
+                //-> Process different event types (e.g., Note On and Note Off events)
                 switch (event.type)
                 {
                     case Event::kNoteOnEvent:
-                        // Use the velocity of the Note On event to apply gain reduction
+                        //-> Use the velocity of the Note On event to apply gain reduction
                         fGainReduction = event.noteOn.velocity;
                         break;
                     case Event::kNoteOffEvent:
-                        // Note Off event resets the gain reduction
+                        //-> Note Off event resets the gain reduction
                         fGainReduction = 0.f;
                         break;
                 }
@@ -172,19 +172,19 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
 
     int32 numChannels = data.inputs[0].numChannels;
 
-    // Get audio buffers
+    //-> Get audio buffers
     uint32 sampleFramesSize = getSampleFramesSizeInBytes(processSetup, data.numSamples);
     void** in = getChannelBuffersPointer(processSetup, data.inputs[0]);
     void** out = getChannelBuffersPointer(processSetup, data.outputs[0]);
     float fVuPPM = 0.f;
 
-    // Check if all channels are silent, then process as silent
+    //-> Check if all channels are silent, then process as silent
     if (data.inputs[0].silenceFlags == getChannelMask(data.inputs[0].numChannels))
     {
-        // Mark output as silent too (it will help the host to propagate the silence)
+        //-> Mark output as silent too (it will help the host to propagate the silence)
         data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
 
-        // If the input buffers are not the same as the output buffers, clear the output buffers
+        //-> If the input buffers are not the same as the output buffers, clear the output buffers
         for (int32 i = 0; i < numChannels; i++)
         {
             if (in[i] != out[i])
@@ -192,27 +192,27 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
                 memset(out[i], 0, sampleFramesSize);
             }
         }
-        // Set the VU Meter value to 0 in this case
+        //-> Set the VU Meter value to 0 in this case
         fVuPPM = 0.f;
     }
     else // We have to process (no silence)
     {
-        // Mark our outputs as not silent
+        //-> Mark our outputs as not silent
         data.outputs[0].silenceFlags = 0;
 
-        // If in bypass mode, the outputs should be like the inputs (copy input to output)
+        //-> If in bypass mode, the outputs should be like the inputs (copy input to output)
         if (bBypass)
         {
             for (int32 i = 0; i < numChannels; i++)
             {
                 if (in[i] != out[i])
                 {
-                    // Copy the input buffer to the output buffer
+                    //-> Copy the input buffer to the output buffer
                     memcpy(out[i], in[i], sampleFramesSize);
                 }
             }
 
-            // Calculate the VU Meter value based on the input samples
+            //-> Calculate the VU Meter value based on the input samples
             if (data.symbolicSampleSize == kSample32)
                 fVuPPM = processVuPPM<Sample32>((Sample32**)in, numChannels, data.numSamples);
             else
@@ -220,24 +220,24 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
         }
         else
         {
-            // Apply gain factor to the input buffer to the output buffer
+            //-> Apply gain factor to the input buffer to the output buffer
             float gain = (fGain - fGainReduction);
             if (bHalfGain)
             {
                 gain = gain * 0.5f;
             }
 
-            // If the applied gain is nearly zero, set the output buffers to zero and set silence flags
+            //-> If the applied gain is nearly zero, set the output buffers to zero and set silence flags
             if (gain < 0.0000001)
             {
                 for (int32 i = 0; i < numChannels; i++)
                 {
                     memset(out[i], 0, sampleFramesSize);
                 }
-                // Set the silence flags to 1 for all channels
+                //-> Set the silence flags to 1 for all channels
                 data.outputs[0].silenceFlags = getChannelMask(data.outputs[0].numChannels);
             }
-            else // Process audio with the applied gain factor
+            else //-> Process audio with the applied gain factor
             {
                 if (data.symbolicSampleSize == kSample32)
                     fVuPPM = processAudio<Sample32>((Sample32**)in, (Sample32**)out, numChannels,
@@ -249,26 +249,28 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
         }
     }
 
-    // Step 4: Write outputs parameter changes
+    //-> Step 4: Write outputs parameter changes
     IParameterChanges* outParamChanges = data.outputParameterChanges;
-    // If there are output parameter changes and the VU Meter value has changed
+    //-> If there are output parameter changes and the VU Meter value has changed
     if (outParamChanges && fVuPPMOld != fVuPPM)
     {
         int32 index = 0;
-        // Add a new value of VU Meter to the output parameter changes
+        //-> Add a new value of VU Meter to the output parameter changes
         IParamValueQueue* paramQueue = outParamChanges->addParameterData(kVuPPMId, index);
         if (paramQueue)
         {
             int32 index2 = 0;
-            // Add the VU Meter value to the parameter queue at sample offset 0
+            //-> Add the VU Meter value to the parameter queue at sample offset 0
             paramQueue->addPoint(0, fVuPPM, index2);
         }
     }
-    // Update the old VU Meter value with the current VU Meter value
+    //-> Update the old VU Meter value with the current VU Meter value
     fVuPPMOld = fVuPPM;
 
     return kResultOk;
 }
+
+//----------------------------//End of commnents for now /-------------------/
 //------------------------------------------------------------------------
 tresult AGain::receiveText (const char* text)
 {
