@@ -27,259 +27,248 @@
 namespace Steinberg {
 namespace Vst {
 
-//------------------------------------------------------------------------
-// AGain Implementation
-//------------------------------------------------------------------------
-AGain::AGain ()
-: fGain (1.f)
-, fGainReduction (0.f)
-, fVuPPMOld (0.f)
-, currentProcessMode (-1) // -1 means not initialized
+// AGain constructor
+AGain::AGain()
+    : fGain(1.f) // Initial value for the gain parameter (default gain = 1.0)
+    , fGainReduction(0.f) // Initial value for the gain reduction parameter (default gain reduction = 0.0)
+    , fVuPPMOld(0.f) // Initial value for the old VU meter value (default VU meter = 0.0)
+    , currentProcessMode(-1) // -1 means not initialized
 {
-	// register its editor class (the same than used in againentry.cpp)
-	setControllerClass (AGainControllerUID);
+    // Register the editor class for the plugin (the same as used in againentry.cpp)
+    setControllerClass(AGainControllerUID);
 }
 
-//------------------------------------------------------------------------
-AGain::~AGain ()
+// AGain destructor
+AGain::~AGain()
 {
-	// nothing to do here yet..
+    // Nothing to do here yet..
 }
 
-//------------------------------------------------------------------------
-tresult PLUGIN_API AGain::initialize (FUnknown* context)
+// AGain initialize function
+tresult PLUGIN_API AGain::initialize(FUnknown* context)
 {
-	//---always initialize the parent-------
-	tresult result = AudioEffect::initialize (context);
-	// if everything Ok, continue
-	if (result != kResultOk)
-	{
-		return result;
-	}
+    // Always initialize the parent class (AudioEffect)
+    tresult result = AudioEffect::initialize(context);
+    // If everything is OK, continue
+    if (result != kResultOk)
+    {
+        return result;
+    }
 
-	//---create Audio In/Out busses------
-	// we want a stereo Input and a Stereo Output
-	addAudioInput (STR16 ("Stereo In"), SpeakerArr::kStereo);
-	addAudioOutput (STR16 ("Stereo Out"), SpeakerArr::kStereo);
+    // Create Audio In/Out busses
+    // We want a stereo Input and a Stereo Output
+    addAudioInput(STR16("Stereo In"), SpeakerArr::kStereo);
+    addAudioOutput(STR16("Stereo Out"), SpeakerArr::kStereo);
 
-	//---create Event In/Out busses (1 bus with only 1 channel)------
-	addEventInput (STR16 ("Event In"), 1);
+    // Create Event In/Out busses (1 bus with only 1 channel)
+    addEventInput(STR16("Event In"), 1);
 
-	return kResultOk;
+    return kResultOk;
 }
 
-//------------------------------------------------------------------------
-tresult PLUGIN_API AGain::terminate ()
+// AGain terminate function
+tresult PLUGIN_API AGain::terminate()
 {
-	// nothing to do here yet...except calling our parent terminate
-	return AudioEffect::terminate ();
+    // Nothing to do here yet... except calling our parent terminate
+    return AudioEffect::terminate();
 }
 
-//------------------------------------------------------------------------
-tresult PLUGIN_API AGain::setActive (TBool state)
+// AGain setActive function
+tresult PLUGIN_API AGain::setActive(TBool state)
 {
-	if (state)
-	{
-		sendTextMessage ("AGain::setActive (true)");
-	}
-	else
-	{
-		sendTextMessage ("AGain::setActive (false)");
-	}
+    if (state)
+    {
+        // Send a text message to indicate that the plugin is set to active (true)
+        sendTextMessage("AGain::setActive (true)");
+    }
+    else
+    {
+        // Send a text message to indicate that the plugin is set to inactive (false)
+        sendTextMessage("AGain::setActive (false)");
+    }
 
-	// reset the VuMeter value
-	fVuPPMOld = 0.f;
+    // Reset the VU Meter value to 0
+    fVuPPMOld = 0.f;
 
-	// call our parent setActive
-	return AudioEffect::setActive (state);
+    // Call our parent setActive function
+    return AudioEffect::setActive(state);
 }
 
-//------------------------------------------------------------------------
-tresult PLUGIN_API AGain::process (ProcessData& data)
+// AGain process function
+tresult PLUGIN_API AGain::process(ProcessData& data)
 {
-	// finally the process function
-	// In this example there are 4 steps:
-	// 1) Read inputs parameters coming from host (in order to adapt our model values)
-	// 2) Read inputs events coming from host (we apply a gain reduction depending of the velocity
-	// of pressed key) 3) Process the gain of the input buffer to the output buffer 4) Write the new
-	// VUmeter value to the output Parameters queue
+    // Finally, the process function
+    // In this example, there are 4 steps:
+    // 1) Read input parameters coming from the host (to adapt model values)
+    // 2) Read input events coming from the host (apply gain reduction based on the velocity of pressed keys)
+    // 3) Process the gain of the input buffer to the output buffer
+    // 4) Write the new VU meter value to the output parameters queue
 
-	//---1) Read inputs parameter changes-----------
-	if (IParameterChanges* paramChanges = data.inputParameterChanges)
-	{
-		int32 numParamsChanged = paramChanges->getParameterCount ();
-		// for each parameter which are some changes in this audio block:
-		for (int32 i = 0; i < numParamsChanged; i++)
-		{
-			if (IParamValueQueue* paramQueue = paramChanges->getParameterData (i))
-			{
-				ParamValue value;
-				int32 sampleOffset;
-				int32 numPoints = paramQueue->getPointCount ();
-				switch (paramQueue->getParameterId ())
-				{
-					case kGainId:
-						// we use in this example only the last point of the queue.
-						// in some wanted case for specific kind of parameter it makes sense to
-						// retrieve all points and process the whole audio block in small blocks.
-						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) ==
-						    kResultTrue)
-						{
-							fGain = (float)value;
-						}
-						break;
+    // Step 1: Read input parameter changes
+    if (IParameterChanges* paramChanges = data.inputParameterChanges)
+    {
+        int32 numParamsChanged = paramChanges->getParameterCount();
+        // For each parameter that has changes in this audio block:
+        for (int32 i = 0; i < numParamsChanged; i++)
+        {
+            if (IParamValueQueue* paramQueue = paramChanges->getParameterData(i))
+            {
+                ParamValue value;
+                int32 sampleOffset;
+                int32 numPoints = paramQueue->getPointCount();
+                // Process the changes for different parameters (e.g., gain and bypass)
+                switch (paramQueue->getParameterId())
+                {
+                    case kGainId:
+                        // Use the last point of the queue (in this example) to update the gain value
+                        if (paramQueue->getPoint(numPoints - 1, sampleOffset, value) == kResultTrue)
+                        {
+                            fGain = (float)value;
+                        }
+                        break;
+                    case kBypassId:
+                        // Use the last point of the queue (in this example) to update the bypass value
+                        if (paramQueue->getPoint(numPoints - 1, sampleOffset, value) == kResultTrue)
+                        {
+                            bBypass = (value > 0.5f);
+                        }
+                        break;
+                }
+            }
+        }
+    }
 
-					case kBypassId:
-						if (paramQueue->getPoint (numPoints - 1, sampleOffset, value) ==
-						    kResultTrue)
-						{
-							bBypass = (value > 0.5f);
-						}
-						break;
-				}
-			}
-		}
-	}
+    // Step 2: Read input events
+    if (IEventList* eventList = data.inputEvents)
+    {
+        int32 numEvent = eventList->getEventCount();
+        for (int32 i = 0; i < numEvent; i++)
+        {
+            Event event;
+            if (eventList->getEvent(i, event) == kResultOk)
+            {
+                // Process different event types (e.g., Note On and Note Off events)
+                switch (event.type)
+                {
+                    case Event::kNoteOnEvent:
+                        // Use the velocity of the Note On event to apply gain reduction
+                        fGainReduction = event.noteOn.velocity;
+                        break;
+                    case Event::kNoteOffEvent:
+                        // Note Off event resets the gain reduction
+                        fGainReduction = 0.f;
+                        break;
+                }
+            }
+        }
+    }
 
-	//---2) Read input events-------------
-	if (IEventList* eventList = data.inputEvents)
-	{
-		int32 numEvent = eventList->getEventCount ();
-		for (int32 i = 0; i < numEvent; i++)
-		{
-			Event event;
-			if (eventList->getEvent (i, event) == kResultOk)
-			{
-				switch (event.type)
-				{
-					//--- -------------------
-					case Event::kNoteOnEvent:
-						// use the velocity as gain modifier
-						fGainReduction = event.noteOn.velocity;
-						break;
+    // Step 3: Process Audio
+    if (data.numInputs == 0 || data.numOutputs == 0)
+    {
+        // Nothing to do if there are no input or output channels
+        return kResultOk;
+    }
 
-					//--- -------------------
-					case Event::kNoteOffEvent:
-						// noteOff reset the reduction
-						fGainReduction = 0.f;
-						break;
-				}
-			}
-		}
-	}
+    int32 numChannels = data.inputs[0].numChannels;
 
-	//--- ----------------------------------
-	//---3) Process Audio---------------------
-	//--- ----------------------------------
-	if (data.numInputs == 0 || data.numOutputs == 0)
-	{
-		// nothing to do
-		return kResultOk;
-	}
+    // Get audio buffers
+    uint32 sampleFramesSize = getSampleFramesSizeInBytes(processSetup, data.numSamples);
+    void** in = getChannelBuffersPointer(processSetup, data.inputs[0]);
+    void** out = getChannelBuffersPointer(processSetup, data.outputs[0]);
+    float fVuPPM = 0.f;
 
-	// (simplification) we suppose in this example that we have the same input channel count than
-	// the output
-	int32 numChannels = data.inputs[0].numChannels;
+    // Check if all channels are silent, then process as silent
+    if (data.inputs[0].silenceFlags == getChannelMask(data.inputs[0].numChannels))
+    {
+        // Mark output as silent too (it will help the host to propagate the silence)
+        data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
 
-	//---get audio buffers----------------
-	uint32 sampleFramesSize = getSampleFramesSizeInBytes (processSetup, data.numSamples);
-	void** in = getChannelBuffersPointer (processSetup, data.inputs[0]);
-	void** out = getChannelBuffersPointer (processSetup, data.outputs[0]);
-	float fVuPPM = 0.f;
+        // If the input buffers are not the same as the output buffers, clear the output buffers
+        for (int32 i = 0; i < numChannels; i++)
+        {
+            if (in[i] != out[i])
+            {
+                memset(out[i], 0, sampleFramesSize);
+            }
+        }
+        // Set the VU Meter value to 0 in this case
+        fVuPPM = 0.f;
+    }
+    else // We have to process (no silence)
+    {
+        // Mark our outputs as not silent
+        data.outputs[0].silenceFlags = 0;
 
-	//---check if silence---------------
-	// check if all channel are silent then process silent
-	if (data.inputs[0].silenceFlags == getChannelMask (data.inputs[0].numChannels))
-	{
-		// mark output silence too (it will help the host to propagate the silence)
-		data.outputs[0].silenceFlags = data.inputs[0].silenceFlags;
+        // If in bypass mode, the outputs should be like the inputs (copy input to output)
+        if (bBypass)
+        {
+            for (int32 i = 0; i < numChannels; i++)
+            {
+                if (in[i] != out[i])
+                {
+                    // Copy the input buffer to the output buffer
+                    memcpy(out[i], in[i], sampleFramesSize);
+                }
+            }
 
-		// the plug-in has to be sure that if it sets the flags silence that the output buffer are
-		// clear
-		for (int32 i = 0; i < numChannels; i++)
-		{
-			// do not need to be cleared if the buffers are the same (in this case input buffer are
-			// already cleared by the host)
-			if (in[i] != out[i])
-			{
-				memset (out[i], 0, sampleFramesSize);
-			}
-		}
-		fVuPPM = 0.f;
-	}
-	else // we have to process (no silence)
-	{
-		// mark our outputs has not silent
-		data.outputs[0].silenceFlags = 0;
+            // Calculate the VU Meter value based on the input samples
+            if (data.symbolicSampleSize == kSample32)
+                fVuPPM = processVuPPM<Sample32>((Sample32**)in, numChannels, data.numSamples);
+            else
+                fVuPPM = processVuPPM<Sample64>((Sample64**)in, numChannels, data.numSamples);
+        }
+        else
+        {
+            // Apply gain factor to the input buffer to the output buffer
+            float gain = (fGain - fGainReduction);
+            if (bHalfGain)
+            {
+                gain = gain * 0.5f;
+            }
 
-		//---in bypass mode outputs should be like inputs-----
-		if (bBypass)
-		{
-			for (int32 i = 0; i < numChannels; i++)
-			{
-				// do not need to be copied if the buffers are the same
-				if (in[i] != out[i])
-				{
-					memcpy (out[i], in[i], sampleFramesSize);
-				}
-			}
+            // If the applied gain is nearly zero, set the output buffers to zero and set silence flags
+            if (gain < 0.0000001)
+            {
+                for (int32 i = 0; i < numChannels; i++)
+                {
+                    memset(out[i], 0, sampleFramesSize);
+                }
+                // Set the silence flags to 1 for all channels
+                data.outputs[0].silenceFlags = getChannelMask(data.outputs[0].numChannels);
+            }
+            else // Process audio with the applied gain factor
+            {
+                if (data.symbolicSampleSize == kSample32)
+                    fVuPPM = processAudio<Sample32>((Sample32**)in, (Sample32**)out, numChannels,
+                        data.numSamples, gain);
+                else
+                    fVuPPM = processAudio<Sample64>((Sample64**)in, (Sample64**)out, numChannels,
+                        data.numSamples, gain);
+            }
+        }
+    }
 
-			if (data.symbolicSampleSize == kSample32)
-				fVuPPM = processVuPPM<Sample32> ((Sample32**)in, numChannels, data.numSamples);
-			else
-				fVuPPM = processVuPPM<Sample64> ((Sample64**)in, numChannels, data.numSamples);
-		}
-		else
-		{
-			//---apply gain factor----------
-			float gain = (fGain - fGainReduction);
-			if (bHalfGain)
-			{
-				gain = gain * 0.5f;
-			}
+    // Step 4: Write outputs parameter changes
+    IParameterChanges* outParamChanges = data.outputParameterChanges;
+    // If there are output parameter changes and the VU Meter value has changed
+    if (outParamChanges && fVuPPMOld != fVuPPM)
+    {
+        int32 index = 0;
+        // Add a new value of VU Meter to the output parameter changes
+        IParamValueQueue* paramQueue = outParamChanges->addParameterData(kVuPPMId, index);
+        if (paramQueue)
+        {
+            int32 index2 = 0;
+            // Add the VU Meter value to the parameter queue at sample offset 0
+            paramQueue->addPoint(0, fVuPPM, index2);
+        }
+    }
+    // Update the old VU Meter value with the current VU Meter value
+    fVuPPMOld = fVuPPM;
 
-			// if the applied gain is nearly zero, we could say that the outputs are zeroed and we set
-			// the silence flags.
-			if (gain < 0.0000001)
-			{
-				for (int32 i = 0; i < numChannels; i++)
-				{
-					memset (out[i], 0, sampleFramesSize);
-				}
-				// this will set to 1 all channels
-				data.outputs[0].silenceFlags = getChannelMask (data.outputs[0].numChannels);
-			}
-			else
-			{
-				if (data.symbolicSampleSize == kSample32)
-					fVuPPM = processAudio<Sample32> ((Sample32**)in, (Sample32**)out, numChannels,
-						data.numSamples, gain);
-				else
-					fVuPPM = processAudio<Sample64> ((Sample64**)in, (Sample64**)out, numChannels,
-						data.numSamples, gain);
-			}
-		}
-	}
-
-	//---3) Write outputs parameter changes-----------
-	IParameterChanges* outParamChanges = data.outputParameterChanges;
-	// a new value of VuMeter will be send to the host
-	// (the host will send it back in sync to our controller for updating our editor)
-	if (outParamChanges && fVuPPMOld != fVuPPM)
-	{
-		int32 index = 0;
-		IParamValueQueue* paramQueue = outParamChanges->addParameterData (kVuPPMId, index);
-		if (paramQueue)
-		{
-			int32 index2 = 0;
-			paramQueue->addPoint (0, fVuPPM, index2);
-		}
-	}
-	fVuPPMOld = fVuPPM;
-
-	return kResultOk;
+    return kResultOk;
 }
-
 //------------------------------------------------------------------------
 tresult AGain::receiveText (const char* text)
 {
