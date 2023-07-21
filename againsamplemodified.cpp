@@ -272,17 +272,19 @@ tresult PLUGIN_API AGain::process(ProcessData& data)
     return kResultOk;
 }
 
-//----------------------------//End of commnents for now /-------------------/
 //------------------------------------------------------------------------
 tresult AGain::receiveText (const char* text)
 {
 	// received from Controller
+	// Print the received text message to the standard error stream
 	fprintf (stderr, "[AGain] received: ");
 	fprintf (stderr, "%s", text);
 	fprintf (stderr, "\n");
 
+	// Toggle the bHalfGain flag (set it to its opposite value)
 	bHalfGain = !bHalfGain;
 
+	// Return kResultOk to indicate successful processing
 	return kResultOk;
 }
 
@@ -291,73 +293,92 @@ tresult PLUGIN_API AGain::setState (IBStream* state)
 {
 	// called when we load a preset, the model has to be reloaded
 
+	// Create an IBStreamer object to read the state data from the IBStream
 	IBStreamer streamer (state, kLittleEndian);
+
+	// Read the savedGain value from the state data
 	float savedGain = 0.f;
 	if (streamer.readFloat (savedGain) == false)
 		return kResultFalse;
 
+	// Read the savedGainReduction value from the state data
 	float savedGainReduction = 0.f;
 	if (streamer.readFloat (savedGainReduction) == false)
 		return kResultFalse;
 
+	// Read the savedBypass value from the state data
 	int32 savedBypass = 0;
 	if (streamer.readInt32 (savedBypass) == false)
 		return kResultFalse;
 
+	// Restore the model's state using the values read from the state data
 	fGain = savedGain;
 	fGainReduction = savedGainReduction;
 	bBypass = savedBypass > 0;
 
+	// Check if we are in the context of loading a project
 	if (Helpers::isProjectState (state) == kResultTrue)
 	{
-		// we are in project loading context...
+		// We are in the project loading context...
 
 		// Example of using the IStreamAttributes interface
+		// Get the IStreamAttributes interface from the state
 		FUnknownPtr<IStreamAttributes> stream (state);
 		if (stream)
 		{
+			// Get the IAttributeList from the IStreamAttributes
 			if (IAttributeList* list = stream->getAttributes ())
 			{
-				// get the full file path of this state
+				// Get the full file path of this state from the attribute list
 				TChar fullPath[1024];
 				memset (fullPath, 0, 1024 * sizeof (TChar));
 				if (list->getString (PresetAttributes::kFilePathStringType, fullPath,
 				                     1024 * sizeof (TChar)) == kResultTrue)
 				{
-					// here we have the full path ...
+					// Here we have the full path of the state file...
+					// You can use this information for any custom processing.
 				}
 			}
 		}
 	}
 
+	// Return kResultOk to indicate successful processing
 	return kResultOk;
 }
 
 //------------------------------------------------------------------------
 tresult PLUGIN_API AGain::getState (IBStream* state)
 {
-	// here we need to save the model
+	// Here we need to save the model
 
+	// Create an IBStreamer object to write the model state to the IBStream
 	IBStreamer streamer (state, kLittleEndian);
 
+	// Write the fGain value to the state data
 	streamer.writeFloat (fGain);
+
+	// Write the fGainReduction value to the state data
 	streamer.writeFloat (fGainReduction);
+
+	// Write the bBypass flag as an int32 value (1 if true, 0 if false)
 	streamer.writeInt32 (bBypass ? 1 : 0);
 
+	// Return kResultOk to indicate successful processing
 	return kResultOk;
 }
 
 //------------------------------------------------------------------------
 tresult PLUGIN_API AGain::setupProcessing (ProcessSetup& newSetup)
 {
-	// called before the process call, always in a disable state (not active)
+	// Called before the process call, always in a disable state (not active)
 
-	// here we keep a trace of the processing mode (offline,...) for example.
+	// Here we keep a trace of the processing mode (offline,...) for example.
+	// Update the currentProcessMode member variable with the processing mode obtained from newSetup.
 	currentProcessMode = newSetup.processMode;
 
+	// Call the setupProcessing function of the base class AudioEffect to perform any necessary setup procedures.
 	return AudioEffect::setupProcessing (newSetup);
 }
-
 //------------------------------------------------------------------------
 tresult PLUGIN_API AGain::setBusArrangements (SpeakerArrangement* inputs, int32 numIns,
                                               SpeakerArrangement* outputs, int32 numOuts)
